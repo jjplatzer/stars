@@ -1,0 +1,4 @@
+earcut.hpp: Mapbox Earcut C++ v2.2.4, unmodified upstream header.
+Source: https://github.com/mapbox/earcut.hpp/tree/v2.2.4
+License: ISC, retained in LICENSE.earcut.
+Used for STARS restriction-area polygon triangulation, including holes.

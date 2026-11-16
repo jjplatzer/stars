@@ -1,0 +1,9 @@
+STARS bitmap font data in a.bin.zst, b.bin.zst, oa.bin.zst, and ob.bin.zst
+is converted from REDS stars/assets/font.go, originally VICE
+stars/font-bitmaps.go, generated from STARS PCF fonts.
+
+Original source notice:
+Copyright(c) 2022-2025 vice contributors, licensed under the GNU Public License, Version 3.
+SPDX-License-Identifier: GPL-3.0-only
+
+Converter and binary layout implementation: cmd/reds2stars/bitmap.go.

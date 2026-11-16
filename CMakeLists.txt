@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.21)
+project(stars VERSION 0.1.0 LANGUAGES CXX)
+
+include(CTest)
+include(renderer/zstd.cmake)
+add_subdirectory(renderer)
+option(STARS_UI "Build the Qt profile application" ON)
+if(STARS_UI)
+    add_subdirectory(ui)
+endif()

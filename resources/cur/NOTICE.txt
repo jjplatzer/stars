@@ -1,0 +1,10 @@
+STARS cursor data in dcb.bin.zst and keyboard.bin.zst is converted from
+REDS stars/assets/cursors.go.
+
+That source identifies VICE stars/cursor-bitmaps.go (STARS PCF-derived
+cursor glyphs) and VICE's foreground/mask compositing logic. The active DCB
+pointer was generated from the basic and basic_m glyphs in olcursor.bdf
+(Sun OPEN LOOK), as documented in the REDS source.
+
+Original source notices and licenses continue to apply to the asset data.
+Converter and binary layout implementation: cmd/reds2stars/bitmap.go.

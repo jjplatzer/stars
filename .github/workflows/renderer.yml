@@ -1,0 +1,69 @@
+name: Build and test renderer
+
+on:
+  push:
+    paths:
+      - 'renderer/**'
+      - 'CMakeLists.txt'
+      - 'resources/bmp/**'
+      - 'resources/cur/**'
+      - '.github/workflows/renderer.yml'
+  pull_request:
+    paths:
+      - 'renderer/**'
+      - 'CMakeLists.txt'
+      - 'resources/bmp/**'
+      - 'resources/cur/**'
+      - '.github/workflows/renderer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renderer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  renderer:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: linux_gcc_64
+          - os: windows-2022
+            arch: win64_msvc2022_64
+          - os: macos-14
+            arch: clang_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux display and Vulkan dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxfixes-dev libxss-dev libxtst-dev libxkbcommon-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libvulkan1 mesa-vulkan-drivers xvfb
+      - name: Install shader compiler
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: ${{ matrix.arch }}
+          modules: qtshadertools
+          cache: true
+      - name: Configure
+        run: cmake -S . -B build -DSTARS_UI=OFF -DSTARS_BUNDLED_ZSTD=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build C++20 renderer and shaders
+        run: cmake --build build --config Release --parallel 4
+      - name: Test command replay and assets
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Test Vulkan pixel output and window presentation
+        if: runner.os == 'Linux'
+        env:
+          SDL_GPU_DRIVER: vulkan
+          SDL_VIDEO_DRIVER: x11
+        run: xvfb-run -a ./build/renderer/renderer_gpu

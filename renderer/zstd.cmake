@@ -1,0 +1,26 @@
+option(STARS_BUNDLED_ZSTD "Build the pinned Zstandard dependency" OFF)
+if(NOT STARS_BUNDLED_ZSTD)
+    find_package(zstd CONFIG QUIET)
+endif()
+add_library(stars_zstd INTERFACE)
+if(TARGET zstd::libzstd_shared)
+    target_link_libraries(stars_zstd INTERFACE zstd::libzstd_shared)
+elseif(TARGET zstd::libzstd_static)
+    target_link_libraries(stars_zstd INTERFACE zstd::libzstd_static)
+else()
+    include(FetchContent)
+    if(POLICY CMP0135)
+        cmake_policy(SET CMP0135 NEW)
+    endif()
+    set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(zstd
+        URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+        URL_HASH SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
+        SOURCE_SUBDIR build/cmake
+    )
+    FetchContent_MakeAvailable(zstd)
+    target_link_libraries(stars_zstd INTERFACE libzstd_static)
+endif()
