@@ -1,0 +1,136 @@
+name: ADSB
+
+on:
+  schedule:
+    - cron: '17 6,18 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'UTC archive date (YYYY-MM-DD), optional'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: adsb-index
+  cancel-in-progress: false
+
+jobs:
+  index:
+    if: github.event_name == 'workflow_dispatch' || vars.ADSB_INDEX_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      GO111MODULE: 'off'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            /cmd/adsb/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+
+      - name: Test and build
+        run: |
+          go test ./cmd/adsb
+          go build -trimpath \
+            -o "$RUNNER_TEMP/adsb-index" ./cmd/adsb
+
+      - name: Ensure Zstandard is available
+        run: |
+          if ! command -v zstd >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y zstd
+          fi
+
+      - name: Generate and publish index
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_DATE: ${{ inputs.date }}
+        run: |
+          set -euo pipefail
+
+          days=()
+
+          if [[ -n "$INPUT_DATE" ]]; then
+            days+=("$INPUT_DATE")
+          else
+            # Recover missing indexes within the playback horizon.
+            # Process at most one archive per workflow invocation.
+            for n in {1..7}; do
+              days+=("$(date -u -d "$n days ago" +%F)")
+            done
+          fi
+
+          for day in "${days[@]}"; do
+            tag="adsb-index-$day"
+
+            existing=$(gh release view "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json assets \
+              --jq '.assets[] | select(.name == "index.json.zst") | .name' \
+              2>/dev/null || true)
+
+            if [[ "$existing" == "index.json.zst" ]]; then
+              echo "Index already published: $day"
+              continue
+            fi
+
+            work="$RUNNER_TEMP/adsb-$day"
+            mkdir -p "$work"
+
+            if "$RUNNER_TEMP/adsb-index" \
+                -date "$day" \
+                -out "$work/index.json"; then
+              :
+            else
+              status=$?
+
+              # Exit code 3 means the upstream archive is not ready.
+              if [[ "$status" == 3 && -z "$INPUT_DATE" ]]; then
+                echo "Archive not available: $day"
+                continue
+              fi
+
+              exit "$status"
+            fi
+
+            zstd -q -3 -f "$work/index.json" \
+              -o "$work/index.json.zst"
+
+            zstd -t "$work/index.json.zst"
+
+            if gh release view "$tag" \
+                --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "$tag" \
+                "$work/index.json.zst" \
+                --repo "$GITHUB_REPOSITORY"
+            else
+              gh release create "$tag" \
+                "$work/index.json.zst" \
+                --repo "$GITHUB_REPOSITORY" \
+                --target "$GITHUB_SHA" \
+                --title "ADS-B index $day" \
+                --prerelease \
+                --latest=false \
+                --notes "Byte-offset index of ADSB.lol historical data. Source data: https://www.adsb.lol/ — ODbL 1.0."
+            fi
+
+            echo "Published index for $day"
+            exit 0
+          done
+
+          echo "No missing available archive found."
