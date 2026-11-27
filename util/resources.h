@@ -5,6 +5,7 @@
 
 namespace stars::util {
 
-QByteArray readCompressedResource(const QString& path, qsizetype maximumSize = 8 * 1024 * 1024);
+QByteArray readCompressedResource(const QString& path,
+                                  qsizetype maximumSize = 8 * 1024 * 1024);
 
-} // namespace stars::util
+}  // namespace stars::util
