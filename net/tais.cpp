@@ -99,6 +99,12 @@ bool TaisCache::availableAt(qint64 second) const {
   return it != windows_.cend() && it->data && !it->data->parts.isEmpty() &&
          it->error.isEmpty();
 }
+TaisCache::Snapshots TaisCache::snapshots() const {
+  Snapshots result;
+  for (auto it = windows_.cbegin(); it != windows_.cend(); ++it)
+    result.insert(it.key(), it->error.isEmpty() ? it->data : nullptr);
+  return result;
+}
 bool TaisCache::ready() const {
   if (!first_) return false;
   for (auto start = *first_; start <= last_; start += windowSeconds)

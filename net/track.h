@@ -27,6 +27,10 @@ struct TrackReport {
 };
 QList<TrackReport> parseTrackReports(const QByteArray& body,
                                      const QString& facility);
+// Called only after stale observations and drops have been rejected.
+bool startsGeneration(qint64 previousMrt, const QString& previousAddress,
+                      qint64 receiptMs, qint64 mrtMs, const QString& address,
+                      bool acquisition);
 struct PastPosition {
   qint64 time;
   QPointF point;

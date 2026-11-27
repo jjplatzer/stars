@@ -238,6 +238,16 @@ void Traffic::updatePlan(const TrackReport& r, qint64 receipt) {
     p.coasting = r.status.startsWith("coast");
   }
 }
+bool startsGeneration(qint64 previousMrt, const QString& previousAddress,
+                      qint64 receiptMs, qint64 mrtMs, const QString& address,
+                      bool acquisition) {
+  return mrtMs > previousMrt &&
+         (acquisition ||
+          receiptMs - previousMrt > Traffic::coastSeconds * 1000 ||
+          (!address.isEmpty() && !previousAddress.isEmpty() &&
+           address != previousAddress));
+}
+
 void Traffic::apply(const TrackReport& r, qint64 receipt, bool history) {
   QString key = r.number;
   if (key.isEmpty()) {
@@ -261,10 +271,8 @@ void Traffic::apply(const TrackReport& r, qint64 receipt, bool history) {
     if (!r.location || r.mrtMs + coastSeconds * 1000 < receipt) return;
     updatePlan(r, receipt);
     auto& t = tracks_[key];
-    if (r.mrtMs > t.report.mrtMs &&
-        (r.newTrack || receipt - t.report.mrtMs > coastSeconds * 1000 ||
-         (!r.address.isEmpty() && !t.report.address.isEmpty() &&
-          r.address != t.report.address)))
+    if (startsGeneration(t.report.mrtMs, t.report.address, receipt, r.mrtMs,
+                         r.address, r.newTrack))
       t = {};
     if (history && t.report.location && r.mrtMs > t.report.mrtMs) {
       t.history.append({t.report.mrtMs, *t.report.location, t.report.altitude});

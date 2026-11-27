@@ -40,6 +40,10 @@ class TaisCache final : public QObject {
   void prepare(qint64 utcSecond, int lookbehindSeconds = 0);
   quint64 revision() const { return revision_; }
   bool availableAt(qint64 utcSecond) const;
+  // Inspect only the windows already retained by prepare(). A null entry is
+  // unavailable; a non-null snapshot may legitimately contain no deliveries.
+  using Snapshots = QMap<qint64, std::shared_ptr<const TaisWindow>>;
+  Snapshots snapshots() const;
   bool ready() const;
   QString error() const;
   // Half-open interval in Unix nanoseconds. A missing result means a window
