@@ -52,6 +52,9 @@ enum TitleButton {
   altitudeButton,
   leaderButton,
   itwsButton,
+  originalButton,
+  hz1Button,
+  hz2Button,
   popupBackground
 };
 struct MenuAction {
@@ -75,23 +78,35 @@ constexpr MenuAction menuActions[]{
      QT_TRANSLATE_NOOP("stars::ui::Pane", "Use TAIS-derived LDR DIR"),
      Qt::CTRL | Qt::SHIFT | Qt::Key_L},
     {itwsButton, QT_TRANSLATE_NOOP("stars::ui::Pane", "Use ITWS WX"),
-     Qt::ALT | Qt::SHIFT | Qt::Key_W}};
+     Qt::ALT | Qt::SHIFT | Qt::Key_W},
+    {originalButton,
+     QT_TRANSLATE_NOOP("stars::ui::Pane", "Historical Positions: Original"),
+     Qt::Key_unknown},
+    {hz1Button,
+     QT_TRANSLATE_NOOP("stars::ui::Pane", "Reconstructed Positions: 1 Hz"),
+     Qt::Key_unknown},
+    {hz2Button,
+     QT_TRANSLATE_NOOP("stars::ui::Pane", "Reconstructed Positions: 2 Hz"),
+     Qt::Key_unknown}};
 constexpr int titleStart = 4 * menuWidth;
 constexpr int sectionHeading = 20, separatorHeight = 9, actionHeight = 30,
               sectionGap = 14;
 constexpr int sectionHeight = sectionHeading + separatorHeight + actionHeight;
 constexpr int basePopupHeight =
-    2 * sectionHeight + sectionGap + 3 * actionHeight;
+    2 * sectionHeight + sectionGap + 6 * actionHeight;
 int sectionTop(int action) {
   return barHeight +
          (action == settingsButton ? 0 : sectionHeight + sectionGap);
 }
-QRect actionRect(int action, int width) {
-  const int offset = action == itwsButton            ? 4 * actionHeight
-                     : action == leaderButton        ? 3 * actionHeight
-                     : action == altitudeButton      ? 2 * actionHeight
-                     : action == switchProfileButton ? actionHeight
-                                                     : 0;
+QRect actionRect(int action, int width, bool hasItws) {
+  const int offset =
+      action >= originalButton
+          ? (4 + int(hasItws) + action - originalButton) * actionHeight
+      : action == itwsButton          ? 4 * actionHeight
+      : action == leaderButton        ? 3 * actionHeight
+      : action == altitudeButton      ? 2 * actionHeight
+      : action == switchProfileButton ? actionHeight
+                                      : 0;
   return {0, sectionTop(action) + sectionHeading + separatorHeight + offset,
           std::min(width, popupWidth), actionHeight};
 }
@@ -342,7 +357,8 @@ struct Pane::Impl {
         x < std::min(w, popupWidth)) {
       for (const auto& action : menuActions)
         if ((action.button != itwsButton || !itwsSiteId.isEmpty()) &&
-            actionRect(action.button, w).contains(int(x), int(y)))
+            actionRect(action.button, w, !itwsSiteId.isEmpty())
+                .contains(int(x), int(y)))
           return action.button;
       return popupBackground;
     }
@@ -577,6 +593,12 @@ struct Pane::Impl {
       if (b == pressed) {
         if (b == Menu) setMenuOpen(!menuOpen);
         if (b == settingsButton) openSettings();
+        if (b >= originalButton && b <= hz2Button) {
+          scope->setReconstructionMode(
+              std::array{ReconstructionMode::Original, ReconstructionMode::Hz1,
+                         ReconstructionMode::Hz2}[b - originalButton]);
+          dirty = true;
+        }
         if (b == itwsButton) toggleItws();
         if (b == leaderButton) toggleLeaderDirection();
         if (b == altitudeButton) toggleAssignedAltitudes();
@@ -714,7 +736,8 @@ struct Pane::Impl {
       }
       for (const auto& action : menuActions) {
         if (action.button == itwsButton && itwsSiteId.isEmpty()) continue;
-        const QRect row = actionRect(action.button, width);
+        const QRect row =
+            actionRect(action.button, width, !itwsSiteId.isEmpty());
         painter.setFont(font);
         if (hover == action.button) {
           painter.save();
@@ -727,7 +750,13 @@ struct Pane::Impl {
              scope->assignedAltitudesHidden()) ||
             (action.button == leaderButton &&
              scope->useTaisLeaderDirection()) ||
-            (action.button == itwsButton && itws))
+            (action.button == itwsButton && itws) ||
+            (action.button == originalButton &&
+             scope->reconstructionMode() == ReconstructionMode::Original) ||
+            (action.button == hz1Button &&
+             scope->reconstructionMode() == ReconstructionMode::Hz1) ||
+            (action.button == hz2Button &&
+             scope->reconstructionMode() == ReconstructionMode::Hz2))
           painter.drawText(row.adjusted(12, 0, 0, 0),
                            Qt::AlignLeft | Qt::AlignVCenter,
                            QStringLiteral("✓"));
@@ -761,13 +790,13 @@ struct Pane::Impl {
         weatherRange = scope->range();
         weatherBounds = scope->weatherBounds(size);
       }
-      const auto position = playback.position(now);
+      const auto playbackMs = playback.currentMs(now);
+      const auto position = playbackMs / 1000;
       tais.prepare(position, net::Traffic::ownershipLookbehindSeconds);
-      if (tais.configured())
-        scope->updateTraffic(tais, playback.currentMs(now));
+      if (tais.configured()) scope->updateTraffic(tais, playbackMs);
       scope->setAltimeters(metars->sample(position), position);
       const auto sample =
-          itws ? itws->sample(playback.currentMs(now))
+          itws ? itws->sample(playbackMs)
                : weather->sample(position, weatherBounds, playback.playing());
       scope->setWeather(sample.pictures);
       if (playback.loading() && sample.ready &&
