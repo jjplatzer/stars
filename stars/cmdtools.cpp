@@ -115,7 +115,7 @@ void STARSPane::drawMinSep(renderer::CmdBuffer& cb, const Fonts& fonts,
   const auto a = tracks.constFind(minPair_[0]),
              b = tracks.constFind(minPair_[1]);
   if (a == tracks.cend() || b == tracks.cend()) return;
-  const auto pa = *a->report.location, pb = *b->report.location;
+  const auto pa = displayPosition(*a), pb = displayPosition(*b);
   const auto va = a->report.velocity.value_or(QPointF{}),
              vb = b->report.velocity.value_or(QPointF{});
   const double scale = radar::longitudeScaleFactorForLat((pa.y() + pb.y()) / 2);

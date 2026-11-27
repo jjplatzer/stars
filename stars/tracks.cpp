@@ -4,7 +4,13 @@
 #include "stars.h"
 
 namespace stars {
+QPointF STARSPane::displayPosition(const net::RadarTrack& target) const {
+  const auto* view = fusion_.display(target.report.number);
+  return view ? view->position : *target.report.location;
+}
+
 void STARSPane::resetTraffic() {
+  fusion_.reset();
   msawSync_.reset();
   msawApproaches_.clear();
   msawEvaluated_ = false;
@@ -30,6 +36,7 @@ void STARSPane::resetTraffic() {
 
 void STARSPane::updateTraffic(const net::TaisCache& cache, qint64 ms) {
   if (ms < trafficMs_ || ms - trafficMs_ > net::Traffic::coastSeconds * 1000) {
+    fusion_.reset();
     msawSync_.reset();
     msawApproaches_.clear();
     msawEvaluated_ = false;
@@ -49,19 +56,36 @@ void STARSPane::updateTraffic(const net::TaisCache& cache, qint64 ms) {
   archiveAvailable_ = cache.availableAt(ms / 1000) && traffic_.initialized();
   atpa_.update(traffic_.tracks(), changed);
   updateMsaw(changed);
-  if (!changed) return;
+  const bool displayChanged =
+      fusion_.update(fusion_.mode() == ReconstructionMode::Original
+                         ? net::TaisCache::Snapshots{}
+                         : cache.snapshots(),
+                     traffic_.tracks(), ms, prefs_.historyCount, changed);
+  if (!changed) {
+    if (displayChanged) {
+      // Only positions move on a display tick. Ownership, pending commands and
+      // tool membership continue to follow receipt-driven Traffic updates.
+      for (auto it = tracks_.begin(); it != tracks_.end(); ++it) {
+        const auto target = traffic_.tracks().constFind(it.key());
+        if (target != traffic_.tracks().cend())
+          it->location = displayPosition(*target);
+      }
+    }
+    return;
+  }
   pruneSelections();
   updateListRows();
-  QMap<QString, Track> tools;
   activeConditions_.clear();
+  QMap<QString, Track> tools;
   for (auto it = traffic_.tracks().cbegin(); it != traffic_.tracks().cend();
        ++it) {
     const auto& r = it->report;
     const auto code = specialCondition(r.beacon);
     if (!code.isEmpty()) activeConditions_.insert(code);
-    tools.insert(it.key(), {*r.location, r.plan ? r.plan->acid : QString{},
-                            r.plan ? r.plan->assignedBeacon : QString{},
-                            r.speed, bool(r.plan)});
+    tools.insert(
+        it.key(),
+        {displayPosition(*it), r.plan ? r.plan->acid : QString{},
+         r.plan ? r.plan->assignedBeacon : QString{}, r.speed, bool(r.plan)});
   }
   setTracks(std::move(tools));
 }
@@ -99,18 +123,29 @@ void STARSPane::drawTraffic(renderer::CmdBuffer& cb, const Fonts& fonts,
                                         {0, 1},  {-u, u}, {-1, 0}, {-u, -u}};
   for (const auto& target : traffic_.tracks()) {
     const auto& r = target.report;
-    const auto c = screen(*r.location);
+    const auto position = displayPosition(target);
+    const auto c = screen(position);
     const auto d = trackDatablock(target);
     if (d.visible && prefs_.brightness.history > 0 &&
         !r.status.startsWith("coast")) {
-      auto n = target.history.size();
-      for (int age = 0; age < prefs_.historyCount; ++age) {
-        const auto cutoff = r.mrtMs - 4500 * (age + 1);
-        while (n > 0 && target.history[n - 1].time > cutoff) --n;
-        if (!n) break;
-        octagon(dots, screen(target.history[--n].point), 4,
-                colors::brightness(palette_.TrackHistory[std::min(age, 4)],
-                                   prefs_.brightness.history));
+      if (fusion_.mode() != ReconstructionMode::Original) {
+        if (const auto* view = fusion_.display(r.number)) {
+          for (qsizetype age = 0; age < view->history.size(); ++age)
+            octagon(dots, screen(view->history[age]), 4,
+                    colors::brightness(
+                        palette_.TrackHistory[std::min<qsizetype>(age, 4)],
+                        prefs_.brightness.history));
+        }
+      } else {
+        auto n = target.history.size();
+        for (int age = 0; age < prefs_.historyCount; ++age) {
+          const auto cutoff = r.mrtMs - 4500 * (age + 1);
+          while (n > 0 && target.history[n - 1].time > cutoff) --n;
+          if (!n) break;
+          octagon(dots, screen(target.history[--n].point), 4,
+                  colors::brightness(palette_.TrackHistory[std::min(age, 4)],
+                                     prefs_.brightness.history));
+        }
       }
     }
     if (c.x < -300 || c.y < -220 || c.x > size.width() + 300 ||
@@ -121,10 +156,10 @@ void STARSPane::drawTraffic(renderer::CmdBuffer& cb, const Fonts& fonts,
       if (automaticPtl(target) ||
           (selection != selections_.cend() && selection->singlePtl)) {
         const auto delta = *r.velocity * (prefs_.ptlHalfMinutes / 120.);
-        const auto scale = radar::longitudeScaleFactorForLat(r.location->y());
+        const auto scale = radar::longitudeScaleFactorForLat(position.y());
         if (scale > 0 && !delta.isNull()) {
           const auto end =
-              *r.location + QPointF(delta.x() / (60 * scale), delta.y() / 60);
+              position + QPointF(delta.x() / (60 * scale), delta.y() / 60);
           ptls.addLineRGB(
               c, screen(end),
               colors::brightness(palette_.PTL, prefs_.brightness.lines));

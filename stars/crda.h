@@ -42,7 +42,8 @@ class Crda {
   void configure(const QJsonArray& adaptation);
   QString command(const QString& entry, QString& output);
   std::optional<Ghost> ghost(const net::RadarTrack& target, double variation,
-                             const Selection& selection) const;
+                             const Selection& selection,
+                             std::optional<QPointF> displayPosition = {}) const;
   bool enabled() const;
   QList<Pair> pairs;
   bool inhibited = false;

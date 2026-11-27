@@ -18,6 +18,7 @@
 #include "datablock.h"
 #include "dcb.h"
 #include "font.h"
+#include "fusion.h"
 #include "msaw.h"
 #include "net/track.h"
 #include "nexrad.h"
@@ -89,6 +90,9 @@ class STARSPane {
     atpa_.setDisplay(control, on, prefs_);
   }
   bool trafficInitialized() const { return traffic_.initialized(); }
+  void setReconstructionMode(ReconstructionMode mode) { fusion_.setMode(mode); }
+  ReconstructionMode reconstructionMode() const { return fusion_.mode(); }
+  QPointF displayPosition(const net::RadarTrack& target) const;
   void updateTraffic(const net::TaisCache& cache, qint64 ms);
   bool useTaisLeaderDirection() const { return taisLeaderDirection_; }
   void toggleTaisLeaderDirection() {
@@ -353,6 +357,7 @@ class STARSPane {
   QString altitudeFilters(bool ssa) const;
   Atpa atpa_;
   net::Traffic traffic_;
+  Fusion fusion_;
   bool atpaCommand(bool selected = false, const QString& track = {});
   void drawAtpa(renderer::CmdBuffer&, const Fonts&, QSizeF, float) const;
   qint64 trafficMs_{};

@@ -1,7 +1,7 @@
 find_package(ZLIB REQUIRED)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Gui)
 add_library(stars_scope STATIC
-    atpa.cpp atpa.h msaw.cpp msaw.h
+    atpa.cpp atpa.h fusion.cpp fusion.h msaw.cpp msaw.h
     stars.cpp stars.h tracks.cpp datablock.cpp datablock.h
     nexrad.cpp nexrad.h itws.cpp itws.h colors.h
     config.cpp config.h
@@ -23,6 +23,11 @@ target_link_libraries(stars_scope PRIVATE Qt6::Gui ZLIB::ZLIB PUBLIC stars_net s
 
 if(BUILD_TESTING)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test Gui)
+    qt_add_executable(stars_fusion_tests tests/fusion.cpp)
+    set_target_properties(stars_fusion_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(stars_fusion_tests PRIVATE stars_scope Qt6::Test)
+    add_test(NAME stars_fusion COMMAND stars_fusion_tests)
+
     qt_add_executable(stars_dcb_tests tests/dcb.cpp)
     set_target_properties(stars_dcb_tests PROPERTIES AUTOMOC ON)
     target_link_libraries(stars_dcb_tests PRIVATE stars_scope Qt6::Test Qt6::Gui)

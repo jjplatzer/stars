@@ -166,14 +166,14 @@ QString Crda::command(const QString& entry, QString& output) {
   }
   return "FORMAT";
 }
-std::optional<Crda::Ghost> Crda::ghost(const net::RadarTrack& t,
-                                       double variation,
-                                       const Selection& selection) const {
+std::optional<Crda::Ghost> Crda::ghost(
+    const net::RadarTrack& t, double variation, const Selection& selection,
+    std::optional<QPointF> displayPosition) const {
   const auto& track = t.report;
   if (inhibited || !track.location || !track.plan || !track.altitude ||
       !track.velocity || track.velocity->isNull() || track.speed > 350)
     return {};
-  const QPointF pos = *track.location;
+  const QPointF pos = displayPosition.value_or(*track.location);
   const double course =
       std::atan2(track.velocity->x(), track.velocity->y()) / radians +
       variation;
@@ -390,7 +390,7 @@ void STARSPane::drawCrdaGhosts(renderer::CmdBuffer& cb, const Fonts& fonts,
       std::array{0, 17, 32, 47, 62, 77, 114, 152}[prefs_.leaderLength];
   for (auto it = tracks.cbegin(); it != tracks.cend(); ++it) {
     const auto selection = ghostSelections_.value(it.key());
-    const auto g = crda_.ghost(*it, mag, selection);
+    const auto g = crda_.ghost(*it, mag, selection, displayPosition(*it));
     if (!g) {
       if (selection.suppressed || !selection.full) {
         auto& old = ghostSelections_[it.key()];

@@ -224,7 +224,7 @@ void STARSPane::drawAtpa(renderer::CmdBuffer& cb, const Fonts& fonts,
   for (const auto& t : tracks) {
     const auto d = atpa_.display(t, prefs_);
     if (!d.ring && !d.manualCone && d.cone == AtpaStatus::None) continue;
-    const auto center = projection.screen(*t.report.location);
+    const auto center = projection.screen(displayPosition(t));
     const auto base = colors::brightness(palette_.TerminalProximityAlert,
                                          prefs_.brightness.lines);
     if (d.ring > 0) {
@@ -253,10 +253,10 @@ void STARSPane::drawAtpa(renderer::CmdBuffer& cb, const Fonts& fonts,
       const auto pair = pairs.constFind(t.report.number);
       const auto lead = tracks.constFind(pair->lead);
       if (lead == tracks.cend()) continue;
-      delta = projection.screen(*lead->report.location) - center;
+      delta = projection.screen(displayPosition(*lead)) - center;
       nm = pair->minimum;
     } else if (nm > 0 && t.report.velocity) {
-      const auto position = *t.report.location, speed = *t.report.velocity;
+      const auto position = displayPosition(t), speed = *t.report.velocity;
       const auto offset =
           QPointF(speed.x() / radar::longitudeScaleFactorForLat(position.y()),
                   speed.y()) /
