@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private STARS playback archive
+Parameters:
+  RetentionDays:
+    Type: Number
+    MinValue: 1
+Resources:
+  Archive:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireTais
+            Prefix: tais/
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+          - Id: ExpireItws
+            Prefix: itws/
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+Outputs:
+  ArchiveBucket:
+    Value: !Ref Archive

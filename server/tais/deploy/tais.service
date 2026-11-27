@@ -1,0 +1,21 @@
+[Unit]
+Description=STARS TAIS recorder
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=stars-tais
+StateDirectoryMode=0700
+EnvironmentFile=/etc/stars/tais.env
+Environment=TAIS_SPOOL=/var/lib/stars-tais
+Environment=AWS_PAGER=
+ExecStart=/usr/bin/java -Xms64m -Xmx512m -XX:+ExitOnOutOfMemoryError -jar /opt/stars/tais.jar
+Restart=always
+RestartSec=15
+MemoryMax=1G
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
