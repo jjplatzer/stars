@@ -1,0 +1,143 @@
+/* CRC AvaloniaApp/App.cs palette: Layer0, Layer1 and Foreground colors. */
+QWidget#profileWindow {
+    background: #2A2B34;
+    color: #F0F0F0;
+}
+QScrollArea#profileFormScroll, QWidget#profileForm {
+    background: #2A2B34;
+    border: none;
+}
+QLabel {
+    background: transparent;
+    color: #F0F0F0;
+    font-size: 14px;
+}
+QLabel#heading {
+    font-size: 20px;
+    font-weight: bold;
+    padding-left: 0;
+    padding-bottom: 3px;
+}
+QLabel#profileDetail {
+    color: #A9A9C0;
+    font-size: 12px;
+}
+QListWidget#profiles {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QListWidget#profiles::item, QListWidget#profiles::item:selected {
+    background: transparent;
+    border: none;
+}
+QFrame#profileRow {
+    background: #2A2B34;
+    border: 1px solid transparent;
+    border-radius: 3px;
+}
+QFrame#profileRow:hover {
+    background: #4C4F62;
+    border-color: #A9A9C0;
+}
+QPushButton {
+    background: #3D3D4C;
+    color: #F0F0F0;
+    border: 1px solid #4A4A5E;
+    border-radius: 3px;
+    font-size: 14px;
+    padding: 0 14px;
+}
+QPushButton:hover {
+    background: #4C4F62;
+    border-color: #727290;
+}
+QPushButton:pressed {
+    background: #32323F;
+}
+QPushButton:focus {
+    border-color: #A9A9C0;
+}
+QPushButton[selector="true"] {
+    background: #000000;
+    border-color: #1F2029;
+    text-align: left;
+    padding-left: 12px;
+}
+QPushButton[selector="true"]:hover { background: #000000; border-color: #484B60; }
+QPushButton[selector="true"]:focus { background: #000000; border-color: #717590; }
+QPushButton:disabled {
+    color: #8E8E8E;
+    background: #3D3D4C;
+    border-color: #4A4A5E;
+}
+QPushButton[selector="true"]:disabled { background: #686870; border-color: #686870; color: #ACACAC; }
+/* CRC Layer3 popup colors; editable/available fields use black. */
+QFrame#selectionPopup {
+    background: #262630;
+    border: 1px solid #1F2029;
+    border-radius: 3px;
+}
+QLineEdit#selectionSearch, QLineEdit#adaptationSearch, QLineEdit#profileNameInput {
+    background: #000000;
+    color: #F0F0F0;
+    selection-background-color: #5C5F74;
+    border: 1px solid #1F2029;
+    border-radius: 3px;
+    padding: 0 8px;
+    font-size: 14px;
+}
+QLineEdit#selectionSearch:focus, QLineEdit#adaptationSearch:focus, QLineEdit#profileNameInput:focus {
+    border-color: #717590;
+}
+QListWidget#selectionList {
+    background: #262630;
+    color: #F0F0F0;
+    border: none;
+    outline: none;
+    font-size: 14px;
+}
+QListWidget#selectionList::item {
+    padding: 0 8px;
+    border-radius: 0;
+}
+QListWidget#selectionList::item:hover { background: #3B3D4A; }
+QListWidget#selectionList::item:selected { background: #464859; color: #F0F0F0; }
+QLabel#emptySelection { color: #A9A9C0; padding: 20px 0; }
+QScrollBar:vertical {
+    background: #2A2B34;
+    width: 8px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #5C5F74;
+    border-radius: 4px;
+    min-height: 24px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+QLabel#fieldLabel { font-weight: bold; }
+
+QLineEdit#inlineProfileName {
+    background: #000000;
+    color: #F0F0F0;
+    border: 1px solid #717590;
+    padding: 0 4px;
+    font-size: 14px;
+    selection-background-color: #5C5F74;
+}
+
+QPushButton[segment="first"], QPushButton[segment="last"] {
+    background: #262630;
+    border: 1px solid #686870;
+    padding: 4px 12px;
+}
+QPushButton[segment="first"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+QPushButton[segment="last"] { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-width: 0; }
+QPushButton[segment="first"]:checked, QPushButton[segment="last"]:checked { background: #5C5F74; color: white; }
+QPushButton[segment="first"]:focus, QPushButton[segment="last"]:focus { border-color: #A9A9C0; }
